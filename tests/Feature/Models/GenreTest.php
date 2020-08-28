@@ -69,14 +69,28 @@ class GenreTest extends TestCase
         $genres = factory(Genre::class, 5)->create()->first();
         $genre = $genres->first();
         $genre_uuid = $genre->id;
+
+        //SoftDelete Test
         $genre->delete();
-
         $genres = Genre::all();
-
+        $genre = Genre::find($genre_uuid);
         $this->assertCount(4, $genres);
+        $this->assertNull($genre);
 
+        //Trash Test
         $genres = Genre::onlyTrashed()->get();
         $this->assertCount(1, $genres);
-        $this->assertEquals($genre_uuid, $genres[0]->id);
+        $genre = $genres->first();
+        $this->assertEquals($genre_uuid, $genre->id);
+
+        //Restore Test
+        $genre->restore();
+        $genres = Genre::onlyTrashed()->get();
+        $this->assertCount(0, $genres);
+
+        $genres = Genre::all();
+        $genre = Genre::find($genre_uuid);
+        $this->assertCount(5, $genres);
+        $this->assertEquals($genre_uuid, $genre->id);
     }
 }
