@@ -81,15 +81,29 @@ class CategoryTest extends TestCase
         $categories = factory(Category::class, 5)->create()->first();
         $category = $categories->first();
         $category_uuid = $category->id;
+
+        //SoftDelete Test
         $category->delete();
-
         $categories = Category::all();
-
+        $category = Category::find($category_uuid);
         $this->assertCount(4, $categories);
+        $this->assertNull($category);
 
+        //Trash Test
         $categories = Category::onlyTrashed()->get();
         $this->assertCount(1, $categories);
-        $this->assertEquals($category_uuid, $categories[0]->id);
+        $category = $categories->first();
+        $this->assertEquals($category_uuid, $category->id);
+
+        //Restore Test
+        $category->restore();
+        $categories = Category::onlyTrashed()->get();
+        $this->assertCount(0, $categories);
+
+        $categories = Category::all();
+        $category = Category::find($category_uuid);
+        $this->assertCount(5, $categories);
+        $this->assertEquals($category_uuid, $category->id);
     }
 
 }
