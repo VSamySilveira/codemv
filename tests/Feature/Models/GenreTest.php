@@ -63,4 +63,20 @@ class GenreTest extends TestCase
             $this->assertEquals($value, $genre->{$key});
         }
     }
+
+    public function testDelete()
+    {
+        $genres = factory(Genre::class, 5)->create()->first();
+        $genre = $genres->first();
+        $genre_uuid = $genre->id;
+        $genre->delete();
+
+        $genres = Genre::all();
+
+        $this->assertCount(4, $genres);
+
+        $genres = Genre::onlyTrashed()->get();
+        $this->assertCount(1, $genres);
+        $this->assertEquals($genre_uuid, $genres[0]->id);
+    }
 }
