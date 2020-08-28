@@ -76,4 +76,20 @@ class CategoryTest extends TestCase
         $this->assertNull($category->description);
     }
 
+    public function testDelete()
+    {
+        $categories = factory(Category::class, 5)->create()->first();
+        $category = $categories->first();
+        $category_uuid = $category->id;
+        $category->delete();
+
+        $categories = Category::all();
+
+        $this->assertCount(4, $categories);
+
+        $categories = Category::onlyTrashed()->get();
+        $this->assertCount(1, $categories);
+        $this->assertEquals($category_uuid, $categories[0]->id);
+    }
+
 }
