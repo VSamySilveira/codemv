@@ -24,14 +24,17 @@ http://localhost:8000
 
 
 
-#### Projeto Criando recurso Category
-Branch: Proj01-CriandoRecursoCategory
+#### Projeto Testes com HTTP
+Branch: Proj03-TestesComHTTP
+Nesta fase você deverá aplicar os testes de http nos controllers de Category e Genre.
+
+Lembre-se de implementar o teste de exclusão que não foi mostrado nas aulas.
+
+Boa sorte
 
 #### Projeto Testes de integração em categorias e gêneros
 Branch: Proj02-TestesIntegracaoCategGeneros
 
-Nesta fase você deverá aplicar os testes de integração nos models Category e Genre.
+#### Projeto Criando recurso Category
+Branch: Proj01-CriandoRecursoCategory
 
-Implemente também o teste na exclusão dos registros e crie no teste de criação do registro, uma verificação se o UUID foi gerado corretamente (seja criativo, pense em como testar se o UUID está correto).
-
-Boa sorte!
