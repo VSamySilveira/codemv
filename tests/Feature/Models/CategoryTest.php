@@ -105,5 +105,4 @@ class CategoryTest extends TestCase
         $this->assertCount(5, $categories);
         $this->assertEquals($category_uuid, $category->id);
     }
-
 }
