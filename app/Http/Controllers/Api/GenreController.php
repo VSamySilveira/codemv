@@ -6,13 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Models\Genre;
 use Illuminate\Http\Request;
 
-class GenreController extends Controller
+class GenreController extends BasicCrudController
 {
     private $rules = [
         'name' => 'required|min:3|max:255',
         'is_active' => 'boolean'
     ];
-    
+
+    protected function model()
+    {
+        return Genre::class;
+    }
+
+    protected function rulesStore()
+    {
+        return $this->rules;
+    }
+
+    protected function rulesUpdate()
+    {
+        return $this->rules;
+    }
+
+/*
     public function index()
     {
         return Genre::all();
@@ -43,4 +59,5 @@ class GenreController extends Controller
         $genre->delete();
         return response()->noContent();
     }
+*/
 }
