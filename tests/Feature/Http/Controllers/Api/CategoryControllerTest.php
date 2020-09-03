@@ -8,166 +8,115 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\TestResponse;
+use Tests\Traits\TestSaves;
+use Tests\Traits\TestValidations;
 
 class CategoryControllerTest extends TestCase
 {
-    use DatabaseMigrations;
+    use DatabaseMigrations, TestValidations, TestSaves;
 
-    protected function assertInvalidationRequired(TestResponse $response)
+    private const myRoutes = [
+        'index' => 'api.categories.index',
+        'show' => 'api.categories.show',
+        'store' => 'api.categories.store',
+        'update' => 'api.categories.update',
+        'destroy' => 'api.categories.destroy'
+    ];
+
+    private $category;
+
+    protected function setUp(): void
     {
-        $response
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['name'])
-            ->assertJsonMissingValidationErrors(['is_active'])
-            ->assertJsonFragment([
-                \Lang::get('validation.required', ['attribute' => 'name'])
-            ]);
+        parent::setUp();
+        $this->category = factory(Category::class)->create();
     }
 
-    protected function assertInvalidationMax(TestResponse $response)
-    {
-        $response
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['name'])
-            ->assertJsonFragment([
-                \Lang::get('validation.max.string', ['attribute' => 'name', 'max' => 255])
-            ]);
-    }
-
-    protected function assertInvalidationBoolean(TestResponse $response)
-    {
-        $response
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['is_active'])
-            ->assertJsonFragment([
-                \Lang::get('validation.boolean', ['attribute' => 'is active'])
-            ]);
-    }
-
+    ////////// TESTING FUNCTIONS ///////////
     public function testIndex()
     {
-        $category = factory(Category::class)->create();
-        $response = $this->get(route('api.categories.index'));
-
+        $response = $this->get(route(self::myRoutes['index']));
         $response
             ->assertStatus(200)
-            ->assertJson([$category->toArray()]);
+            ->assertJson([$this->category->toArray()]);
     }
 
     public function testShow()
     {
-        $category = factory(Category::class)->create();
-        $response = $this->get(route('api.categories.show', ['category' => $category->id]));
-
+        $response = $this->get(route(self::myRoutes['show'], ['category' => $this->category->id]));
         $response
             ->assertStatus(200)
-            ->assertJson($category->toArray());
+            ->assertJson($this->category->toArray());
     }
 
     public function testInvalidationData()
     {
-        /////////// CREATE TESTS ///////////
-        //Test Name Required Validation
-        $response = $this->json('POST', route('api.categories.store'), []);
-        $this->assertInvalidationRequired($response);
+        $data = ['name' => ''];
+        $this->assertInvalidationInStoreAction($data, 'required');
+        $this->assertInvalidationInUpdateAction($data, 'required');
 
-        //Test Name Max Validation
-        $response = $this->json('POST', route('api.categories.store'), [
-                'name' => str_repeat('a', 256),
-                'is_active' => 'a'
-            ]);
-        $this->assertInvalidationMax($response);
-        $this->assertInvalidationBoolean($response);
-        
-        /////////// UPDATE TESTS ///////////
-        //Test Name Required Validation
-        $category = factory(Category::class)->create();
-        $response = $this->json('PUT', route('api.categories.update', ['category' => $category->id]), []);
-        $this->assertInvalidationRequired($response);
-        
-        
-        //Test Name Max Validation
-        $response = $this->json('PUT', route('api.categories.update', ['category' => $category->id]), [
-            'name' => str_repeat('a', 256),
-            'is_active' => 'a'
-        ]);
-        $this->assertInvalidationMax($response);
-        $this->assertInvalidationBoolean($response);
+        $data = ['name' => str_repeat('a', 256)];
+        $this->assertInvalidationInStoreAction($data, 'max.string', ['max' => 255]);
+        $this->assertInvalidationInUpdateAction($data, 'max.string', ['max' => 255]);
 
-        /////////// DELETE TESTS ///////////
-        $category = factory(Category::class)->make(); //Obs: Not created: ->create()
-        $response = $this->json('DELETE', route('api.categories.destroy', ['category' => $category->id]));
-        $response
-            ->assertStatus(405)
-            ->assertSeeText("methodNotAllowed");
+        $data = ['is_active' => 'a'];
+        $this->assertInvalidationInStoreAction($data, 'boolean');
+        $this->assertInvalidationInUpdateAction($data, 'boolean');
     }
 
-    
     public function testStore()
     {
-        //First description and is_active omitted
-        $response = $this->json('POST', route('api.categories.store'), [
-            'name' => 'Test1'
-        ]);
-        $id = $response->json('id');
-        $category = Category::find($id);
-        $response
-            ->assertStatus(201)
-            ->assertJson($category->toArray());
-        $this->assertNull($response->json('description'));
-        $this->assertTrue($response->json('is_active'));
+        $data = ['name' => 'Test1'];
+        $response = $this->assertStore(
+            $data, 
+            $data + ['description' => null, 'is_active' => true, 'deleted_at' => null]
+        );
+        $response->assertJsonStructure(['created_at', 'updated_at']);
 
-        //Second description and is_active defined
-        $response = $this->json('POST', route('api.categories.store'), [
+        $data = [
             'name' => 'Test1',
             'description' => 'Olá',
             'is_active' => false
-        ]);
-        $id = $response->json('id');
-        $category = Category::find($id);
-        $response
-            ->assertStatus(201)
-            ->assertJson($category->toArray());
-        $this->assertEquals('Olá', $response->json('description'));
-        $this->assertFalse($response->json('is_active'));
+        ];
+        $this->assertStore(
+            $data, 
+            $data + ['description' => 'Olá', 'is_active' => false]
+        );
     }
 
     public function testUpdate()
     {
-        $category = factory(Category::class)->create([
-                'is_active' => false
-            ]);
+        $this->category = factory(Category::class)->create([
+            'is_active' => false
+        ]);
 
-        $response = $this->json('PUT', route('api.categories.update', ['category' => $category->id]), [
+        //Test if update the fields name, description and is_active
+        $data = [
             'name' => 'Test1',
-            'description' => 'Olá Mundo',
+            'description' => 'Olá',
             'is_active' => true
-        ]);
-        $id = $response->json('id');
-        $category = Category::find($id);
-        $response
-            ->assertStatus(200)
-            ->assertJson($category->toArray())
-            ->assertJsonFragment([
-                'name' => 'Test1',
-                'description' => 'Olá Mundo',
-                'is_active' => true
-            ]);
+        ];
+        $response = $this->assertUpdate(
+            $data,
+            $data + ['deleted_at' => null]
+        );
+        $response->assertJsonStructure(['created_at', 'updated_at']);
         
-        $response = $this->json('PUT', route('api.categories.update', ['category' => $category->id]), [
+        //Test if update field description to null
+        $data = [
             'name' => 'Test1',
-            'description' => '',
-            'is_active' => true
-        ]);
-        $response->assertJsonFragment(['description' => null]);
+            'description' => ''
+        ];
+        $response = $this->assertUpdate(
+            $data,
+            array_merge($data, ['description' => null])
+        );
     }
 
     public function testDestroy()
     {
-        $category = factory(Category::class)->create();
-        $response = $this->json('DELETE', route('api.categories.destroy', ['category' => $category->id]));
+        $response = $this->json('DELETE', route(self::myRoutes['destroy'], ['category' => $this->category->id]));
         $response->assertStatus(204);
-        $uuid = $category->id;
+        $uuid = $this->category->id;
         //Check if deleted
         $category = Category::find($uuid);
         $this->assertNull($category);
@@ -176,4 +125,19 @@ class CategoryControllerTest extends TestCase
         $this->assertNotNull($category);
     }
 
+    /////////// AUXILIARY FUNCTIONS ///////////
+    protected function routeStore()
+    {
+        return route(self::myRoutes['index']);
+    }
+
+    protected function routeUpdate()
+    {
+        return route(self::myRoutes['update'], ['category' => $this->category->id]);
+    }
+
+    protected function model()
+    {
+        return Category::class;
+    }
 }

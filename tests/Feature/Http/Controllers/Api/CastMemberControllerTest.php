@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Http\Controllers\Api;
 
-use App\Models\Genre;
+use App\Models\CastMember;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,41 +11,41 @@ use Illuminate\Foundation\Testing\TestResponse;
 use Tests\Traits\TestSaves;
 use Tests\Traits\TestValidations;
 
-class GenreControllerTest extends TestCase
+class CastMemberControllerTest extends TestCase
 {
     use DatabaseMigrations, TestValidations, TestSaves;
 
     private const myRoutes = [
-        'index' => 'api.genres.index',
-        'show' => 'api.genres.show',
-        'store' => 'api.genres.store',
-        'update' => 'api.genres.update',
-        'destroy' => 'api.genres.destroy'
+        'index' => 'api.cast_members.index',
+        'show' => 'api.cast_members.show',
+        'store' => 'api.cast_members.store',
+        'update' => 'api.cast_members.update',
+        'destroy' => 'api.cast_members.destroy'
     ];
 
-    private $genre;
+    private $castMember;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->genre = factory(Genre::class)->create();
+        $this->castMember = factory(CastMember::class)->create();
     }
 
-    /////////// TESTING FUNCTIONS ///////////
+    ////////// TESTING FUNCTIONS ///////////
     public function testIndex()
     {
         $response = $this->get(route(self::myRoutes['index']));
         $response
             ->assertStatus(200)
-            ->assertJson([$this->genre->toArray()]);
+            ->assertJson([$this->castMember->toArray()]);
     }
 
     public function testShow()
     {
-        $response = $this->get(route(self::myRoutes['show'], ['genre' => $this->genre->id]));
+        $response = $this->get(route(self::myRoutes['show'], ['cast_member' => $this->castMember->id]));
         $response
             ->assertStatus(200)
-            ->assertJson($this->genre->toArray());
+            ->assertJson($this->castMember->toArray());
     }
 
     public function testInvalidationData()
@@ -58,14 +58,22 @@ class GenreControllerTest extends TestCase
         $this->assertInvalidationInStoreAction($data, 'max.string', ['max' => 255]);
         $this->assertInvalidationInUpdateAction($data, 'max.string', ['max' => 255]);
 
+        $data = ['type' => null];
+        $this->assertInvalidationInStoreAction($data, 'required');
+        $this->assertInvalidationInUpdateAction($data, 'required');
+
+        $data = ['type' => 'x'];
+        $this->assertInvalidationInStoreAction($data, 'numeric');
+        $this->assertInvalidationInUpdateAction($data, 'numeric');
+
         $data = ['is_active' => 'a'];
         $this->assertInvalidationInStoreAction($data, 'boolean');
         $this->assertInvalidationInUpdateAction($data, 'boolean');
     }
-    
+
     public function testStore()
     {
-        $data = ['name' => 'Test1'];
+        $data = ['name' => 'Test1', 'type' => 1];
         $response = $this->assertStore(
             $data, 
             $data + ['is_active' => true, 'deleted_at' => null]
@@ -74,41 +82,43 @@ class GenreControllerTest extends TestCase
 
         $data = [
             'name' => 'Test1',
+            'type' => 2,
             'is_active' => false
         ];
         $this->assertStore(
             $data, 
-            $data + ['is_active' => false]
+            $data
         );
     }
 
     public function testUpdate()
     {
-        $this->genre = factory(Genre::class)->create([
+        $this->castMember = factory(CastMember::class)->create([
             'is_active' => false
         ]);
 
         $data = [
             'name' => 'Test1',
+            'type' => 1,
             'is_active' => true
         ];
         $response = $this->assertUpdate(
             $data,
-            $data + ['deleted_at' => null]
+            $data
         );
-        $response->assertJsonStructure(['created_at', 'updated_at']);
     }
 
     public function testDestroy()
     {
-        $response = $this->json('DELETE', route(self::myRoutes['destroy'], ['genre' => $this->genre->id]));
+        $response = $this->json('DELETE', route(self::myRoutes['destroy'], ['cast_member' => $this->castMember->id]));
         $response->assertStatus(204);
+        $uuid = $this->castMember->id;
         //Check if deleted
-        $genre = Genre::find($this->genre->id);
-        $this->assertNull($genre);
+        $castMember = CastMember::find($uuid);
+        $this->assertNull($castMember);
         //Check if trashed
-        $genre = Genre::onlyTrashed()->find($this->genre->id);
-        $this->assertNotNull($genre);
+        $castMember = CastMember::onlyTrashed()->find($uuid);
+        $this->assertNotNull($castMember);
     }
 
     /////////// AUXILIARY FUNCTIONS ///////////
@@ -119,11 +129,11 @@ class GenreControllerTest extends TestCase
 
     protected function routeUpdate()
     {
-        return route(self::myRoutes['update'], ['genre' => $this->genre->id]);
+        return route(self::myRoutes['update'], ['cast_member' => $this->castMember->id]);
     }
 
     protected function model()
     {
-        return Genre::class;
+        return CastMember::class;
     }
 }

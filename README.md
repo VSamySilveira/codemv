@@ -23,14 +23,19 @@ http://localhost:8000
 ```
 
 
+#### Projeto Abstract CRUD e Resource CastMember
+Branch: Proj04-AbstractCRUDeCastMember
+
+Neste fase de projeto, você deve implementar e testar:
+
+O controller abstrato de CRUD com todos os métodos
+O resource CastMember com os dados: name - string, type - smallInteger (1 - Diretor, 2 - Actor)
+Ao final, submeta o código ao CI e deixe o registro dele no seu repositório Git através de uma pull request.
+
+Boa sorte!
 
 #### Projeto Testes com HTTP
 Branch: Proj03-TestesComHTTP
-Nesta fase você deverá aplicar os testes de http nos controllers de Category e Genre.
-
-Lembre-se de implementar o teste de exclusão que não foi mostrado nas aulas.
-
-Boa sorte
 
 #### Projeto Testes de integração em categorias e gêneros
 Branch: Proj02-TestesIntegracaoCategGeneros
