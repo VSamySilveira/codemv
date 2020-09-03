@@ -42,4 +42,3 @@ Branch: Proj02-TestesIntegracaoCategGeneros
 
 #### Projeto Criando recurso Category
 Branch: Proj01-CriandoRecursoCategory
-
