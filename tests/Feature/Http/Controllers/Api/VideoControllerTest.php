@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\GenreController;
-use App\Models\Genre;
+use App\Http\Controllers\Api\VideoController;
+use App\Models\Video;
 use App\Models\Category;
+use App\Models\Genre;
+use Exception;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,54 +17,63 @@ use Tests\Exceptions\TestException;
 use Tests\Traits\TestSaves;
 use Tests\Traits\TestValidations;
 
-class GenreControllerTest extends TestCase
+class VideoControllerTest extends TestCase
 {
     use DatabaseMigrations, TestValidations, TestSaves;
 
     private const myRoutes = [
-        'index' => 'api.genres.index',
-        'show' => 'api.genres.show',
-        'store' => 'api.genres.store',
-        'update' => 'api.genres.update',
-        'destroy' => 'api.genres.destroy'
+        'index' => 'api.videos.index',
+        'show' => 'api.videos.show',
+        'store' => 'api.videos.store',
+        'update' => 'api.videos.update',
+        'destroy' => 'api.videos.destroy'
     ];
 
-    private $genre;
+    private $video;
     private $sendData;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->genre = factory(Genre::class)->create();
+
+        $this->video = factory(Video::class)->create(['opened' => false]);
 
         $this->sendData = [
-            'name' => 'Test1',
-            'is_active' => true
+            'title' => 'Test1',
+            'description' => 'Description1',
+            'year_launched' => 2010,
+            'rating' => Video::RATING_LIST[0],
+            'duration' => 90
         ];
     }
 
-    /////////// TESTING FUNCTIONS ///////////
+    ////////// TESTING FUNCTIONS ///////////
     public function testIndex()
     {
         $response = $this->get(route(self::myRoutes['index']));
         $response
             ->assertStatus(200)
-            ->assertJson([$this->genre->toArray()]);
+            ->assertJson([$this->video->toArray()]);
     }
 
     public function testShow()
     {
-        $response = $this->get(route(self::myRoutes['show'], ['genre' => $this->genre->id]));
+        $response = $this->get(route(self::myRoutes['show'], ['video' => $this->video->id]));
         $response
             ->assertStatus(200)
-            ->assertJson($this->genre->toArray());
+            ->assertJson($this->video->toArray());
     }
 
     public function testInvalidationRequired()
     {
         $data = [
-            'name' => '',
-            'categories_id' => ''
+            'title' => '',
+            'description' => '',
+            'year_launched' => '',
+            'rating' => '',
+            'duration' => '',
+            'categories_id' => '',
+            'genres_id' => ''
         ];
         $this->assertInvalidationInStoreAction($data, 'required');
         $this->assertInvalidationInUpdateAction($data, 'required');
@@ -70,17 +81,44 @@ class GenreControllerTest extends TestCase
 
     public function testInvalidationMax()
     {
-        $data = ['name' => str_repeat('a', 256)];
+        $data = ['title' => str_repeat('a', 256)];
         $this->assertInvalidationInStoreAction($data, 'max.string', ['max' => 255]);
         $this->assertInvalidationInUpdateAction($data, 'max.string', ['max' => 255]);
     }
 
     public function testInvalidationMin()
     {
-        $category = factory(Category::class)->create();
-        $data = ['name' => 'a'];
+        $data = ['title' => 'a'];
         $this->assertInvalidationInStoreAction($data, 'min.string', ['min' => 2]);
         $this->assertInvalidationInUpdateAction($data, 'min.string', ['min' => 2]);
+    }
+
+    public function testInvalidationInteger()
+    {
+        $data = ['duration' => 'a'];
+        $this->assertInvalidationInStoreAction($data, 'integer');
+        $this->assertInvalidationInUpdateAction($data, 'integer');
+    }
+
+    public function testInvalidationYearLaunchedField()
+    {
+        $data = ['year_launched' => 'a'];
+        $this->assertInvalidationInStoreAction($data, 'date_format', ['format' => 'Y']);
+        $this->assertInvalidationInUpdateAction($data, 'date_format', ['format' => 'Y']);
+    }
+
+    public function testInvalidationOpenedField()
+    {
+        $data = ['opened' => 'a'];
+        $this->assertInvalidationInStoreAction($data, 'boolean');
+        $this->assertInvalidationInUpdateAction($data, 'boolean');
+    }
+
+    public function testInvalidationRatingField()
+    {
+        $data = ['rating' => 'a'];
+        $this->assertInvalidationInStoreAction($data, 'in');
+        $this->assertInvalidationInUpdateAction($data, 'in');
     }
 
     public function testInvalidationCategoriesIdField()
@@ -92,6 +130,21 @@ class GenreControllerTest extends TestCase
             ],
             [
                 'data' => ['categories_id' => [50]],
+                'rule' => 'exists'
+            ],
+        ];
+        $this->assertInvalidationSaveRelationshipFields($data);
+    }
+
+    public function testInvalidationGenresIdField()
+    {
+        $data = [
+            [
+                'data' => ['genres_id' => 'x'],
+                'rule' => 'array'
+            ],
+            [
+                'data' => ['genres_id' => [50]],
                 'rule' => 'exists'
             ],
         ];
@@ -110,17 +163,23 @@ class GenreControllerTest extends TestCase
     public function testSave()
     {
         $category = factory(Category::class)->create();
+        $genre = factory(Genre::class)->create();
         $newSendData = array_merge($this->sendData, [
-            'categories_id' => [$category->id]
+            'categories_id' => [$category->id],
+            'genres_id' => [$genre->id]
         ]);
         $data = [
             [
                 'send_data' => $newSendData,
-                'test_data' => array_merge($this->sendData, ['is_active' => true])
+                'test_data' => array_merge($this->sendData, ['opened' => false])
             ],
             [
-                'send_data' => array_merge($newSendData, ['is_active' => false]),
-                'test_data' => array_merge($this->sendData, ['is_active' => false])
+                'send_data' => array_merge($newSendData, ['opened' => true]),
+                'test_data' => array_merge($this->sendData, ['opened' => true])
+            ],
+            [
+                'send_data' => array_merge($newSendData, ['rating' => Video::RATING_LIST[1]]),
+                'test_data' => array_merge($this->sendData, ['rating' => Video::RATING_LIST[1]])
             ]
         ];
 
@@ -147,7 +206,7 @@ class GenreControllerTest extends TestCase
 
     public function testRollbackStore()
     {
-        $controller = \Mockery::mock(GenreController::class)
+        $controller = \Mockery::mock(VideoController::class)
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
 
@@ -171,19 +230,19 @@ class GenreControllerTest extends TestCase
         }
         catch (TestException $exception)
         {
-            $this->assertCount(1, Genre::all());
+            $this->assertCount(1, Video::all());
         }
     }
 
     public function testRollbackUpdate()
     {
-        $controller = \Mockery::mock(GenreController::class)
+        $controller = \Mockery::mock(VideoController::class)
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
 
         $controller->shouldReceive('findOrFail')
             ->withAnyArgs()
-            ->andReturn($this->genre);
+            ->andReturn($this->video);
 
         $controller->shouldReceive('validate')
             ->withAnyArgs()
@@ -199,31 +258,30 @@ class GenreControllerTest extends TestCase
 
         $request = \Mockery::mock(Request::class);
         
-        $currentGenre = Genre::find($this->genre->id);
+        $currentVideo = Video::find($this->video->id);
         try 
         {
-            $controller->update($request, $this->genre->id);
+            $controller->update($request, $this->video->id);
         }
         catch (TestException $exception)
         {
-            $this->assertCount(1, Genre::all());
-            $updatedGenre = Genre::find($this->genre->id);
-            $this->assertEquals($currentGenre->name, $updatedGenre->name);
+            $this->assertCount(1, Video::all());
+            $updatedVideo = Video::find($this->video->id);
+            $this->assertEquals($currentVideo->title, $updatedVideo->title);
         }
     }
 
-    //TODO: testRollbackUpdate PENDING
-
     public function testDestroy()
     {
-        $response = $this->json('DELETE', route(self::myRoutes['destroy'], ['genre' => $this->genre->id]));
+        $response = $this->json('DELETE', route(self::myRoutes['destroy'], ['video' => $this->video->id]));
         $response->assertStatus(204);
+        $uuid = $this->video->id;
         //Check if deleted
-        $genre = Genre::find($this->genre->id);
-        $this->assertNull($genre);
+        $video = Video::find($uuid);
+        $this->assertNull($video);
         //Check if trashed
-        $genre = Genre::onlyTrashed()->find($this->genre->id);
-        $this->assertNotNull($genre);
+        $video = Video::onlyTrashed()->find($uuid);
+        $this->assertNotNull($video);
     }
 
     /////////// AUXILIARY FUNCTIONS ///////////
@@ -234,11 +292,11 @@ class GenreControllerTest extends TestCase
 
     protected function routeUpdate()
     {
-        return route(self::myRoutes['update'], ['genre' => $this->genre->id]);
+        return route(self::myRoutes['update'], ['video' => $this->video->id]);
     }
 
     protected function model()
     {
-        return Genre::class;
+        return Video::class;
     }
 }

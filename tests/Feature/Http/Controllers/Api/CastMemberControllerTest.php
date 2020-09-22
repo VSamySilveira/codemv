@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\TestResponse;
+use PhpParser\Node\Stmt\Foreach_;
 use Tests\Traits\TestSaves;
 use Tests\Traits\TestValidations;
 
@@ -23,12 +24,12 @@ class CastMemberControllerTest extends TestCase
         'destroy' => 'api.cast_members.destroy'
     ];
 
-    private $castMember;
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->castMember = factory(CastMember::class)->create();
+        $this->castMember = factory(CastMember::class)->create([
+            'type' => CastMember::TYPE_DIRECTOR
+        ]);
     }
 
     ////////// TESTING FUNCTIONS ///////////
@@ -50,62 +51,56 @@ class CastMemberControllerTest extends TestCase
 
     public function testInvalidationData()
     {
-        $data = ['name' => ''];
+        $data = [
+            'name' => '',
+            'type' => ''
+        ];
         $this->assertInvalidationInStoreAction($data, 'required');
         $this->assertInvalidationInUpdateAction($data, 'required');
 
-        $data = ['name' => str_repeat('a', 256)];
+        $data = [
+            'name' => str_repeat('a', 256)
+        ];
         $this->assertInvalidationInStoreAction($data, 'max.string', ['max' => 255]);
         $this->assertInvalidationInUpdateAction($data, 'max.string', ['max' => 255]);
 
-        $data = ['type' => null];
-        $this->assertInvalidationInStoreAction($data, 'required');
-        $this->assertInvalidationInUpdateAction($data, 'required');
-
-        $data = ['type' => 'x'];
-        $this->assertInvalidationInStoreAction($data, 'numeric');
-        $this->assertInvalidationInUpdateAction($data, 'numeric');
-
-        $data = ['is_active' => 'a'];
-        $this->assertInvalidationInStoreAction($data, 'boolean');
-        $this->assertInvalidationInUpdateAction($data, 'boolean');
+        $data = [
+            'type' => 's'
+        ];
+        $this->assertInvalidationInStoreAction($data, 'in');
+        $this->assertInvalidationInUpdateAction($data, 'in');
     }
 
     public function testStore()
     {
-        $data = ['name' => 'Test1', 'type' => 1];
-        $response = $this->assertStore(
-            $data, 
-            $data + ['is_active' => true, 'deleted_at' => null]
-        );
-        $response->assertJsonStructure(['created_at', 'updated_at']);
-
         $data = [
-            'name' => 'Test1',
-            'type' => 2,
-            'is_active' => false
+            [
+                'name' => 'Test1', 
+                'type' => CastMember::TYPE_DIRECTOR
+            ],
+            [
+                'name' => 'Test2', 
+                'type' => CastMember::TYPE_ACTOR
+            ]
         ];
-        $this->assertStore(
-            $data, 
-            $data
-        );
+        foreach ($data as $key => $value)
+        {
+            $response = $this->assertStore($value, $value + ['deleted_at' => null]);
+            $response->assertJsonStructure(['created_at', 'updated_at']);
+        }
     }
 
     public function testUpdate()
     {
-        $this->castMember = factory(CastMember::class)->create([
-            'is_active' => false
-        ]);
-
         $data = [
             'name' => 'Test1',
-            'type' => 1,
-            'is_active' => true
+            'type' => CastMember::TYPE_ACTOR
         ];
         $response = $this->assertUpdate(
             $data,
-            $data
+            $data + ['deleted_at' => null]
         );
+        $response->assertJsonStructure(['created_at', 'updated_at']);
     }
 
     public function testDestroy()

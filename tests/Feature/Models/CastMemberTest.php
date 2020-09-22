@@ -28,33 +28,30 @@ class CastMemberTest extends TestCase
         $this->assertCount(1, $castMembers);
 
         $castMemberKeys = array_keys($castMembers->first()->getAttributes());
-        $expectedKeys = ['id', 'name', 'type', 'is_active', 'created_at', 'updated_at', 'deleted_at'];
+        $expectedKeys = ['id', 'name', 'type', 'created_at', 'updated_at', 'deleted_at'];
         $this->assertEqualsCanonicalizing($expectedKeys, $castMemberKeys);
     }
 
     public function testCreate()
     {
-        $castMember = CastMember::create(['name' => 'Test1', 'type' => 1]);
+        $castMember = CastMember::create(['name' => 'Test1', 'type' => CastMember::TYPE_DIRECTOR]);
         $castMember->refresh();
         
         $this->assertTrue($this->isValidUuid4($castMember->id));
         $this->assertEquals('Test1', $castMember->name);
-        $this->assertEquals(1, $castMember->type);
-        $this->assertTrue($castMember->is_active);
+        $this->assertEquals(CastMember::TYPE_DIRECTOR, $castMember->type);
 
-        $castMember = CastMember::create(['name' => 'Test1', 'type' => 2, 'is_active' => false]);
+        $castMember = CastMember::create(['name' => 'Test1', 'type' => CastMember::TYPE_ACTOR]);
         $this->assertNull($castMember->description);
-        $this->assertEquals(2, $castMember->type);
-        $this->assertFalse($castMember->is_active);
+        $this->assertEquals(CastMember::TYPE_ACTOR, $castMember->type);
     }
 
     public function testUpdate()
     {
-        $castMember = factory(CastMember::class)->create(['type' => 1, 'is_active' => false])->first();
+        $castMember = factory(CastMember::class)->create(['type' => 1])->first();
         $data = [
             'name' => 'Test2', 
-            'type' => 2,
-            'is_active' => true
+            'type' => CastMember::TYPE_ACTOR
         ];
         $castMember->update($data);
 

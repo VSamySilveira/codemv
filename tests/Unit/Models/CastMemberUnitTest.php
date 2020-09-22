@@ -22,7 +22,7 @@ class CastMemberTest extends TestCase
 
     public function testFillable()
     {
-        $fillable = ['name', 'type', 'is_active'];
+        $fillable = ['name', 'type'];
         $this->assertEquals($fillable, $this->castMember->getFillable());
     }
 
@@ -33,12 +33,6 @@ class CastMemberTest extends TestCase
         ];
         $castMemberTraits = array_keys(class_uses(CastMember::class));
         $this->assertEquals($expectedTraits, $castMemberTraits);
-    }
-
-    public function testCasts()
-    {
-        $casts = ['id' => 'string', 'type' => 'smallInteger', 'is_active' => 'boolean'];
-        $this->assertEquals($casts, $this->castMember->getCasts());
     }
 
     public function testIncrementing()
