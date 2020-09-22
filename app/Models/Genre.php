@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Genre extends Model
 {
     use SoftDeletes, Traits\Uuid;
-    protected $table = 'genres';
+    //protected $table = 'genres';
     protected $fillable = ['name', 'is_active'];
     protected $dates = ["deleted_at"];
     protected $casts = [
@@ -16,4 +16,9 @@ class Genre extends Model
         'is_active' => 'boolean'
     ];
     public $incrementing = false;
+
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class);
+    }
 }

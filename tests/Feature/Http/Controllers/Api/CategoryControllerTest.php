@@ -28,7 +28,7 @@ class CategoryControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->category = factory(Category::class)->create();
+        $this->category = factory(Category::class)->create(['is_active' => false]);
     }
 
     ////////// TESTING FUNCTIONS ///////////
@@ -85,10 +85,6 @@ class CategoryControllerTest extends TestCase
 
     public function testUpdate()
     {
-        $this->category = factory(Category::class)->create([
-            'is_active' => false
-        ]);
-
         //Test if update the fields name, description and is_active
         $data = [
             'name' => 'Test1',

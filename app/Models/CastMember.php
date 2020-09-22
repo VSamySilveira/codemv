@@ -8,13 +8,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class CastMember extends Model
 {
     use SoftDeletes, Traits\Uuid;
-    protected $table = 'cast_members';
-    protected $fillable = ['name', 'type', 'is_active'];
+
+    const TYPE_DIRECTOR = 1;
+    const TYPE_ACTOR = 2;
+
+    //protected $table = 'cast_members';
+    protected $fillable = ['name', 'type'];
     protected $dates = ["deleted_at"];
-    protected $casts = [
-        'id' => 'string',
-        'type' => 'smallInteger',
-        'is_active' => 'boolean'
-    ];
+    
     public $incrementing = false;
 }
