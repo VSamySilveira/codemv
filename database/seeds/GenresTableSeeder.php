@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Database\Seeder;
+use App\Models\Genre;
+use App\Models\Category;
 
 class GenresTableSeeder extends Seeder
 {
@@ -11,6 +13,7 @@ class GenresTableSeeder extends Seeder
      */
     public function run()
     {
+        $categories = Category::all();
         $genres = [
             ['name' => 'Ação'],
             ['name' => 'Animação'],
@@ -32,7 +35,8 @@ class GenresTableSeeder extends Seeder
             ['name' => 'Terror']
         ];
         foreach ($genres as $genre) {
-            App\Models\Genre::create($genre);
+            $categoriesId = $categories->random(5)->pluck('id')->toArray();
+            Genre::create($genre)->categories()->attach($categoriesId);
         }
     }
 }

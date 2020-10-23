@@ -85,6 +85,8 @@ class GenreControllerTest extends TestCase
 
     public function testInvalidationCategoriesIdField()
     {
+        $category = factory(Category::class)->create();
+        $category->delete();
         $data = [
             [
                 'data' => ['categories_id' => 'x'],
@@ -94,6 +96,10 @@ class GenreControllerTest extends TestCase
                 'data' => ['categories_id' => [50]],
                 'rule' => 'exists'
             ],
+            [
+                'data' => ['categories_id' => [$category->id]],
+                'rule' => 'exists'
+            ]
         ];
         $this->assertInvalidationSaveRelationshipFields($data);
     }
@@ -109,17 +115,16 @@ class GenreControllerTest extends TestCase
 
     public function testSave()
     {
-        $category = factory(Category::class)->create();
-        $newSendData = array_merge($this->sendData, [
-            'categories_id' => [$category->id]
-        ]);
+        $category1 = factory(Category::class)->create();
+        $category2 = factory(Category::class)->create();
+
         $data = [
             [
-                'send_data' => $newSendData,
+                'send_data' => array_merge($this->sendData, ['categories_id' => [$category1->id]]),
                 'test_data' => array_merge($this->sendData, ['is_active' => true])
             ],
             [
-                'send_data' => array_merge($newSendData, ['is_active' => false]),
+                'send_data' => array_merge($this->sendData, ['is_active' => false], ['categories_id' => [$category2->id]]),
                 'test_data' => array_merge($this->sendData, ['is_active' => false])
             ]
         ];
@@ -134,6 +139,8 @@ class GenreControllerTest extends TestCase
                 'created_at', 
                 'updated_at'
             ]);
+            $this->assertHasCategory($response->json('id'), $value['send_data']['categories_id'][0]);
+
             $response = $this->assertUpdate(
                 $value['send_data'],
                 array_merge($value['test_data'], ['deleted_at' => null])
@@ -142,8 +149,56 @@ class GenreControllerTest extends TestCase
                 'created_at', 
                 'updated_at'
             ]);
+            $this->assertHasCategory($response->json('id'), $value['send_data']['categories_id'][0]);
         }
     }
+
+    protected function assertHasCategory($genreId, $categoryId)
+    {
+        $this->assertDatabaseHas('category_genre', [
+            'genre_id' => $genreId,
+            'category_id' => $categoryId
+        ]);
+    }
+
+    public function testSyncCategories()
+    {
+        $categoriesId = factory(Category::class, 3)->create()->pluck('id')->toArray();
+
+        $sendData = [
+            'name' => 'Test1',
+            'categories_id' => [$categoriesId[0]]
+        ];
+
+        $response = $this->json('POST', $this->routeStore(), $sendData);
+        $this->assertDatabaseHas('category_genre', [
+            'category_id' => $categoriesId[0],
+            'genre_id' => $response->json('id')
+        ]);
+
+        $sendData = [
+            'name' => 'Test1',
+            'categories_id' => [$categoriesId[1], $categoriesId[2]]
+        ];
+        $response = $this->json(
+            'PUT', 
+            route(self::myRoutes['update'], ['genre' => $response->json('id')]),
+            $sendData
+        );
+        $this->assertDatabaseMissing('category_genre', [
+            'category_id' => $categoriesId[0],
+            'genre_id' => $response->json('id')
+        ]);
+        $this->assertDatabaseHas('category_genre', [
+            'category_id' => $categoriesId[1],
+            'genre_id' => $response->json('id')
+        ]);
+        $this->assertDatabaseHas('category_genre', [
+            'category_id' => $categoriesId[2],
+            'genre_id' => $response->json('id')
+        ]);
+    }
+
 
     public function testRollbackStore()
     {
@@ -164,7 +219,8 @@ class GenreControllerTest extends TestCase
             ->andThrow(new TestException());
 
         $request = \Mockery::mock(Request::class);
-
+        
+        $hasError = false;
         try 
         {
             $controller->store($request);
@@ -172,7 +228,9 @@ class GenreControllerTest extends TestCase
         catch (TestException $exception)
         {
             $this->assertCount(1, Genre::all());
+            $hasError = true;
         }
+        $this->assertTrue($hasError);
     }
 
     public function testRollbackUpdate()
@@ -200,6 +258,7 @@ class GenreControllerTest extends TestCase
         $request = \Mockery::mock(Request::class);
         
         $currentGenre = Genre::find($this->genre->id);
+        $hasError = false;
         try 
         {
             $controller->update($request, $this->genre->id);
@@ -209,7 +268,9 @@ class GenreControllerTest extends TestCase
             $this->assertCount(1, Genre::all());
             $updatedGenre = Genre::find($this->genre->id);
             $this->assertEquals($currentGenre->name, $updatedGenre->name);
+            $hasError = true;
         }
+        $this->assertTrue($hasError);
     }
 
     //TODO: testRollbackUpdate PENDING

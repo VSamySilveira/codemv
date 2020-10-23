@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Video extends Model
 {
-    use SoftDeletes, Traits\Uuid;
+    use SoftDeletes, Traits\Uuid, Traits\UploadFiles;
 
     const RATING_LIST = [
         'L',
@@ -37,13 +37,69 @@ class Video extends Model
 
     public $incrementing = false;
 
+    public static $fileFields = ['video_file'];
+
+    public static function create(array $attributes = [])
+    {
+        $files = self::extractFiles($attributes);
+        try {
+            \DB::beginTransaction();
+            $object = static::query()->create($attributes);
+            static::handleRelations($object, $attributes);
+            $object->uploadFiles($files);
+            \DB::commit();
+            return $object;
+        } catch (\Exception $err) {
+            if(isset($object)) {
+                //TODO: Excluir arquivos de upload
+            }
+            \DB::rollBack();
+            throw $err;
+        }
+    }
+
+    public function update(array $attributes = [], array $options = [])
+    {
+        try {
+            \DB::beginTransaction();
+            $saved = parent::update($attributes, $options);
+            static::handleRelations($this, $attributes);
+            if ($saved)
+            {
+                //TODO: Novos arquivos de upload aqui
+                //TODO: Exclusao de arquivos antigos aqui
+            }
+            \DB::commit();
+            return $saved;
+        } catch (\Exception $err) {
+            //TODO: Excluir arquivos de upload
+            \DB::rollBack();
+            throw $err;
+        }
+    }
+
+    public static function handleRelations(Video $video, array $attributes)
+    {
+        if(isset($attributes['categories_id'])) {
+            $video->categories()->sync($attributes['categories_id']);
+        }
+        if(isset($attributes['genres_id'])) {
+            $video->genres()->sync($attributes['genres_id']);
+        }
+    }
+
     public function categories()
     {
-        return $this->belongsToMany(Category::class);
+        return $this->belongsToMany(Category::class)->withTrashed();
     }
     
     public function genres()
     {
-        return $this->belongsToMany(Genre::class);
+        return $this->belongsToMany(Genre::class)->withTrashed();
+    }
+
+    protected function uploadDir()
+    {
+        return $this->id;
     }
 }
