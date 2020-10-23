@@ -7,18 +7,14 @@ use App\Models\Genre;
 
 class GenreController extends BasicCrudController
 {
-    private $rules = [
-        'name' => 'required|min:3|max:255',
-        'is_active' => 'boolean',
-        'categories_id' => 'required|array|exists:categories,id'
-    ];
+    private $rules;
 
     public function __construct()
     {
         $this->rules = [
             'name' => 'required|min:2|max:255',
             'is_active' => 'boolean',
-            'categories_id' => 'required|array|exists:categories,id'
+            'categories_id' => 'required|array|exists:categories,id,deleted_at,NULL'
         ];
     }
 
