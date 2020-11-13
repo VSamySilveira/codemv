@@ -2,7 +2,7 @@ steps:
 - id: "Descriptografando Arquivos"
   name: 'gcr.io/cloud.builders/gcloud'
   args:
-    -kms
+    - kms
     - decrypt
     - --ciphertext-file=./storage/credentials/google/storage/storage-service-account.json.enc
     - --plaintext-file=./storage/credentials/google/storage/storage-service-account.json
