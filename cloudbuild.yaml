@@ -1,6 +1,6 @@
 steps:
 - id: "Descriptografando Arquivos"
-  name: 'gcr.io/cloud.builders/gcloud'
+  name: 'gcr.io/cloud-builders/gcloud'
   args:
     - kms
     - decrypt
