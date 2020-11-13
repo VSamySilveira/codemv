@@ -1,8 +1,24 @@
 steps:
+- id: "Descriptografando Arquivos"
+  name: 'gcr.io/cloud-builders/gcloud'
+  args:
+    - kms
+    - decrypt
+    - --ciphertext-file=./storage/credentials/google/storage/storage-service-account.json.enc
+    - --plaintext-file=./storage/credentials/google/storage/storage-service-account.json
+    - --location=global
+    - --keyring=testing-ci-vsamyprod
+    - --key=service-account
 
 - id: "Rodando docker-compose"
   name: 'gcr.io/$PROJECT_ID/docker-compose:1.24.0'
   args: ['-f','docker-compose.prod.yaml', 'up', '-d']
+  env:
+    - GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID
+    - GOOGLE_CLOUD_KEY_FILE=storage-service-account.json
+    - GOOGLE_CLOUD_STORAGE_BUCKET=vsamy-micro-videos
+    - GOOGLE_CLOUD_STORAGE_API_URI=https://storage.googleapis.com/vsamy-micro-videos
+    - TESTING_PROD=true
 
 - id: "Chown in /var/www"
   name: 'gcr.io/cloud-builders/docker'
