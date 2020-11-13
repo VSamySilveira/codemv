@@ -24,8 +24,13 @@ class Video extends Model
         'year_launched', 
         'opened', 
         'rating', 
-        'duration'
+        'duration',
+        'video_file',
+        'thumb_file',
+        'banner_file',
+        'trailer_file'
     ];
+    
     protected $dates = ["deleted_at"];
     
     protected $casts = [
@@ -36,14 +41,14 @@ class Video extends Model
     ];
 
     public $incrementing = false;
-
-    public static $fileFields = ['video_file'];
+    public static $fileFields = ['video_file', 'thumb_file', 'banner_file', 'trailer_file'];
 
     public static function create(array $attributes = [])
     {
         $files = self::extractFiles($attributes);
         try {
             \DB::beginTransaction();
+            /** @var Video $object */
             $object = static::query()->create($attributes);
             static::handleRelations($object, $attributes);
             $object->uploadFiles($files);
@@ -51,7 +56,7 @@ class Video extends Model
             return $object;
         } catch (\Exception $err) {
             if(isset($object)) {
-                //TODO: Excluir arquivos de upload
+                $object->deleteFiles($files);
             }
             \DB::rollBack();
             throw $err;
@@ -60,19 +65,23 @@ class Video extends Model
 
     public function update(array $attributes = [], array $options = [])
     {
+        $files = self::extractFiles($attributes);
         try {
             \DB::beginTransaction();
             $saved = parent::update($attributes, $options);
             static::handleRelations($this, $attributes);
             if ($saved)
             {
-                //TODO: Novos arquivos de upload aqui
-                //TODO: Exclusao de arquivos antigos aqui
+                $this->uploadFiles($files);
             }
             \DB::commit();
+            //if($saved && count($files)) { //TODO: [Question] If the user choosed to remove the video file but doesn`t want to send a new video file now, why wouldn't I delete the old video file?
+            if($saved) {
+                $this->deleteOldFiles();
+            }
             return $saved;
         } catch (\Exception $err) {
-            //TODO: Excluir arquivos de upload
+            $this->deleteFiles($files);
             \DB::rollBack();
             throw $err;
         }

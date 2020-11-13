@@ -31,9 +31,8 @@ trait TestValidations
         {
             $fieldName = str_replace('_', ' ', $field);
             $response->assertJsonFragment(([
-                \Lang::get("validation.{$rule}", ['attribute' => $fieldName] + $ruleParams)
+                \Lang::get("validation.{$rule}", array_merge(['attribute' => $fieldName], $ruleParams))
             ]));
         }
-        // \Lang::get('validation.required', ['attribute' => 'name'])
     }
 }
