@@ -39,8 +39,14 @@ class BasicCrudControllerTest extends TestCase
     public function testIndex()
     {
         $categoryStub = CategoryStub::create(['name' => 'Test Name', 'description' => 'Test Description']);
-        $result = $this->controller->index()->toArray();
-        $this->assertEquals([$categoryStub->toArray()], $result);
+        $resource = $this->controller->index();
+        $serialized = $resource->response()->getData(true);
+        $this->assertEquals(
+            [$categoryStub->toArray()],
+            $serialized['data']
+        );
+        $this->assertArrayHasKey('meta', $serialized);
+        $this->assertArrayHasKey('links', $serialized);
     }
 
     public function testInvalidationDataInStructure()
@@ -63,10 +69,11 @@ class BasicCrudControllerTest extends TestCase
             ->shouldReceive('all')
             ->once()
             ->andReturn(['name' => 'Name Test', 'description' => 'Desc Test']);
-        $object = $this->controller->store($request);
+        $resource = $this->controller->store($request);
+        $serialized = $resource->response()->getData(true);
         $this->assertEquals(
-            CategoryStub::find(1)->toArray(), 
-            $object->toArray()
+            CategoryStub::first()->toArray(), 
+            $serialized['data']
         );
     }
 
@@ -98,9 +105,9 @@ class BasicCrudControllerTest extends TestCase
     public function testShow()
     {
         $categoryStub = CategoryStub::create(['name' => 'Test Name', 'description' => 'Test Description']);
-        $resultObject = $this->controller->show($categoryStub->id);
-        $storedObject = CategoryStub::find(1);
-        $this->assertEquals($resultObject->toArray(), $storedObject->toArray());
+        $resource = $this->controller->show($categoryStub->id);
+        $serialized = $resource->response()->getData(true);
+        $this->assertEquals($categoryStub->toArray(), $serialized['data']);
     }
 
     public function testUpdate()
@@ -111,22 +118,18 @@ class BasicCrudControllerTest extends TestCase
             ->shouldReceive('all')
             ->once()
             ->andReturn(['name' => 'New Name Test', 'description' => 'New Desc Test']);
-        $resultObject = $this->controller->update($request, $categoryStub->id);
-        $storedObject = CategoryStub::find(1);
-        $this->assertEquals($resultObject->toArray(), $storedObject->toArray());
+        $resource = $this->controller->update($request, $categoryStub->id);
+        $serialized = $resource->response()->getData(true);
+        $categoryStub->refresh();
+        $this->assertEquals($categoryStub->toArray(), $serialized['data']);
     }
 
     public function testDestroy()
     {
         $categoryStub = CategoryStub::create(['name' => 'Test Name', 'description' => 'Test Description']);
         $resultResponse = $this->controller->destroy($categoryStub->id);
-        //$resultResponse->assertStatus(204);
         $this->createTestResponse($resultResponse)->assertStatus(204);
-        //Check if deleted
         $newCategory = CategoryStub::find($categoryStub->id);
         $this->assertNull($newCategory);
-        //Check if trashed - Stub is not using SoftDelete
-        //$newCategory = CategoryStub::onlyTrashed()->find($categoryStub->id);
-        //$this->assertNotNull($newCategory);
     }
 }
