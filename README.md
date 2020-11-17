@@ -25,33 +25,35 @@ http://localhost:8000
 ## Projetos
 
 
-### Terminando upload do model vídeo
-#### Branch: Proj07-TerminandoVideo
-<b>OBS:</b> Desafio não realizado.
-
-Nesta fase, você deverá acrescentar mais campos de upload na tabela e no model Vídeo. Já temos <b>video_file</b> e <b>thumb_file</b>.
-
-Agora teremos:
-
-banner_file
-trailer_file
-Você deve criar também os testes de validação de tamanho máximo para os 4 campos. Abaixo está o tamanho máximo permitido:
-
-video_file - 50GB
-thumb_file - 5MB
-banner_file - 10MB
-trailer_file - 1GB
-
-Agora com todos estes arquivos em mãos, consolide os testes de upload no teste de integração do model Vídeo. Precisamos saber se no próprio model Video, os uploads estão funcionando. Você pode criar 4 testes: <b>testCreateWithBasicFields</b> e <b>testUpdateWithBasicFields</b> para testar somente a criação ou atualização do vídeo sem upload e <b>testCreateWithFiles</b>  e <b>testUpdateWithFiles</b> para focar somente no upload.
+### Implementando API Resource
+#### Branch: Proj08-APIResource
+[Notas do Aluno]
+Não consegui resolver todos os erros dos testes dos controllers e no BasicCrudController após a implementação do API Resource. Faltou muito conhecimento meu dentro do Laravel quanto a implementação disto no Video =(
+Acabei precisando assistir a revisão do Projeto para aprender a fazer.
 
 
-<b>Desafio (Opcional):</b> Na trait de uploads, crie um método que receba o nome de um arquivo e devolva o endereço correto do arquivo, ou seja, o endereço WEB de acesso ao arquivo. Este método servirá como base para gerar qualquer endereço de qualquer arquivo do vídeo.
 
-Você deve criar o teste deste método e criar mutators do Eloquent para permitir que os endereços sejam acessíveis como campos, exemplo: <b>$video->thumb_file_url</b> ou <b>$video->video_file_url</b>.
+Nesta fase, você deve implementar o recurso API Resource nos controllers e testa-los.
 
-Teste tudo isso.
+Crie os resources para: Category, CastMember, Genre e Video.
+
+No resource de Genre, você deve incluir na serialização, as categorias relacionadas.
+
+No resource de Video, você deve incluir na serialização, as categorias e gêneros relacionados e as urls dos arquivos.
+
+Aplique todos os resources nos controllers e faça os testes em todos os métodos do CRUD, exceto no destroy. Lembre-se de testar sempre a estrutura do JSON, com o método jsonStructure e também usando o método assertResource.
+
+
+<b>Desafio (Opcional):</b> Agora com a mudança para o API Resource, o controller básico de CRUD foi modificado, será necessário testa-lo também.
+
+Aplique os testes em todos os métodos, exceto no destroy. Lembre-se que neste controller não temos resposta HTTP, logo em cada retorno de cada ação do controller, teremos a instância do Resource para avaliar.
+
+Somente avalie se os dados do resource são iguais ao toArray do model CategoryStub.
 
 Boa sorte!
+
+### Terminando upload do model vídeo
+#### Branch: Proj07-TerminandoVideo
 
 ### Primeiro upload de arquivos
 #### Branch: Proj06-UploadArquivos

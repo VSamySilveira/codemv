@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 
 class CategoryController extends BasicCrudController
@@ -27,38 +28,13 @@ class CategoryController extends BasicCrudController
         return $this->rules;
     }
 
-/*
-    public function index()
+    protected function resourceCollection()
     {
-        return Category::all();
+        return $this->resource();
     }
 
-    public function store(Request $request)
+    protected function resource()
     {
-        $this->validate($request, $this->rules);
-        $category = Category::create($request->all());
-        $category->refresh();
-        return $category;
+        return CategoryResource::class;
     }
-
-    public function show(Category $category)
-    {
-        return $category;
-    }
-
-    public function update(Request $request, Category $category)
-    {
-        $this->validate($request, $this->rules);
-        //$category->fill($request->all());
-        //$category->save();
-        $category->update($request->all());
-        return $category;
-    }
-
-    public function destroy(Category $category)
-    {
-        $category->delete();
-        return response()->noContent(); //204
-    }
-*/
 }

@@ -51,6 +51,7 @@ return [
         'video_local' => [
             'driver' => 'local',
             'root' => storage_path('app/public/videos'),
+            'url' => env('APP_URL') . '/storage/videos',
         ],
 
         'public' => [
@@ -78,7 +79,5 @@ return [
             'storage_api_uri' => env('GOOGLE_CLOUD_STORAGE_API_URI', null), // see: Public URLs below
             'visibility' => 'public', // optional: public|private
         ],
-
     ],
-
 ];

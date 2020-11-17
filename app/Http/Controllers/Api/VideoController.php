@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers\Api;
+
+use App\Http\Resources\VideoResource;
 use Illuminate\Http\Request;
 
 use App\Models\Video;
@@ -21,10 +23,10 @@ class VideoController extends BasicCrudController
             'duration' => 'required|integer',
             'categories_id' => 'required|array|exists:categories,id,deleted_at,NULL',
             'genres_id' => ['required','array','exists:genres,id,deleted_at,NULL'],
-            'video_file' => 'mimetypes:video/mp4|max:'.env('MAX_VIDEO_SIZE', 52428800), //50GB
-            'thumb_file' => 'image|max:'.env('MAX_THUMB_SIZE', 5120), //5MB
-            'banner_file' => 'image|max:'.env('MAX_BANNER_SIZE', 10240), //10MB
-            'trailer_file' => 'mimetypes:video/mp4|max:'.env('MAX_TRAILER_SIZE', 1048576) //1GB
+            'video_file' => 'mimetypes:video/mp4|max:'.env('MAX_VIDEO_FILE_SIZE', 52428800), //50GB
+            'thumb_file' => 'image|max:'.env('MAX_THUMB_FILE_SIZE', 5120), //5MB
+            'banner_file' => 'image|max:'.env('MAX_BANNER_FILE_SIZE', 10240), //10MB
+            'trailer_file' => 'mimetypes:video/mp4|max:'.env('MAX_TRAILER_FILE_SIZE', 1048576) //1GB
         ];
     }
 
@@ -35,7 +37,8 @@ class VideoController extends BasicCrudController
         $validatedData = $this->validate($request, $this->rulesStore());
         $object = $this->model()::create($validatedData);
         $object->refresh();
-        return $object;
+        $resource = $this->resource();
+        return new $resource($object);
     }
 
     public function update(Request $request, $id)
@@ -45,7 +48,9 @@ class VideoController extends BasicCrudController
         $this->addRuleIfGenreHasCategories($request);
         $validatedData = $this->validate($request, $this->rulesUpdate());
         $object->update($validatedData);
-        return $object;
+        $object->refresh();
+        $resource = $this->resource();
+        return new $resource($object);
     }
 
     protected function addRuleIfGenreHasCategories($request)
@@ -68,5 +73,15 @@ class VideoController extends BasicCrudController
     protected function rulesUpdate()
     {
         return $this->rules;
+    }
+
+    protected function resourceCollection()
+    {
+        return $this->resource();
+    }
+
+    protected function resource()
+    {
+        return VideoResource::class;
     }
 }
